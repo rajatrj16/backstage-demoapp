@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Template
+metadata:
+  name: python-313-pip-template-copy
+  namespace: default
+spec:
+  type: website
+  lifecycle: production
+  owner: group:engineering
+  dependsOn: ['backstage/scaffolder']

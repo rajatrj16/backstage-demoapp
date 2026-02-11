@@ -31,6 +31,17 @@ backend:
     client: better-sqlite3
     connection: ':memory:'
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
+  workingDirectory: ${APP_CONFIG_DIR}
+
+  # Allow the backend to read local file URLs for scaffolder templates
+  reading:
+    allow:
+      - host: ":"
+        paths:
+          - /scaffolding-templates-main
+      - host: ":"
+        paths:
+          - ${APP_CONFIG_DIR}/
 
 integrations:
   github:
@@ -70,6 +81,9 @@ auth:
 
 scaffolder:
   # see https://backstage.io/docs/features/software-templates/configuration for software template options
+  sources:
+    - type: local
+      target: examples/scaffolding-repo-template
 
 catalog:
   import:
@@ -85,6 +99,12 @@ catalog:
     # Local example template
     - type: file
       target: ../../examples/template/template.yaml
+      rules:
+        - allow: [Template]
+
+    # repository scaffolding template
+    - type: file
+      target: ../../examples/scaffolding-repo-template/template.yaml
       rules:
         - allow: [Template]
 

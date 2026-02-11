@@ -50,7 +50,6 @@ backend.add(import('@backstage/plugin-search-backend'));
 
 // search engine
 // See https://backstage.io/docs/features/search/search-engines
-backend.add(import('@backstage/plugin-search-backend-module-pg'));
 
 // search collators
 backend.add(import('@backstage/plugin-search-backend-module-catalog'));
@@ -61,6 +60,19 @@ backend.add(import('@backstage/plugin-kubernetes-backend'));
 
 // notifications and signals plugins
 backend.add(import('@backstage/plugin-notifications-backend'));
+
 backend.add(import('@backstage/plugin-signals-backend'));
+
+// Local plugin creation: register the pluginCreate backend module
+// This provides /api/plugin-create (POST to create plugins) and
+// /api/plugins/list (GET to discover plugins) endpoints
+backend.add(import('./plugins/pluginCreate'));
+
+// Catalog customization
+backend.add(import('./plugins/catalogAllowFileLocations'));
+
+// Custom scaffolder actions
+backend.add(import('./plugins/scaffolderFileRegister'));
+backend.add(import('./plugins/scaffolderPersistRepo'));
 
 backend.start();

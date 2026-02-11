@@ -1,0 +1,14 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name | lower | replace(' ', '-') }}
+  description: ${{ values.description }}
+  tags:
+    - java
+    - microservice
+    - generated
+spec:
+  type: service
+  owner: user:guest
+  lifecycle: development
+  system: services

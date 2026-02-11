@@ -24,6 +24,7 @@ import { apis } from './apis';
 import { entityPage } from './components/catalog/EntityPage';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
+import { DemoAppHomePage } from './components/DemoAppHome';
 
 import {
   AlertDisplay,
@@ -37,7 +38,7 @@ import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { NotificationsPage } from '@backstage/plugin-notifications';
 import { SignalsDisplay } from '@backstage/plugin-signals';
-
+import { DemoPluginPage } from '@internal/backstage-plugin-demo-plugin';
 const app = createApp({
   apis,
   bindRoutes({ bind }) {
@@ -64,7 +65,7 @@ const app = createApp({
 
 const routes = (
   <FlatRoutes>
-    <Route path="/" element={<Navigate to="catalog" />} />
+    <Route path="/" element={<DemoAppHomePage />} />
     <Route path="/catalog" element={<CatalogIndexPage />} />
     <Route
       path="/catalog/:namespace/:kind/:name"
@@ -97,6 +98,7 @@ const routes = (
     <Route path="/settings" element={<UserSettingsPage />} />
     <Route path="/catalog-graph" element={<CatalogGraphPage />} />
     <Route path="/notifications" element={<NotificationsPage />} />
+    <Route path="/demo-plugin" element={<DemoPluginPage />} />
   </FlatRoutes>
 );
 
