@@ -16,27 +16,15 @@ spec:
   parameters:
     - title: Basic Information
       required:
-        - git_repo_name
-        # - app_name
-        - org
+        - repoUrl
       properties:
-        git_repo_name:
-          title: Repository Name
+        repoUrl:
+          title: Repository Location
           type: string
-          description: Name of the Git repository
-          ui:autofocus: true
-          pattern: '^[a-z0-9-]+$'
-          default: scaffolded-test-microservice
-        # app_name:
-        #   title: Application Name
-        #   type: string
-        #   description: Name of the application
-        #   default: Test Microservice
-        org:
-          title: Organization
-          type: string
-          description: Organization name
-          default: test-org
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
 
     - title: Service Configuration
       required:
@@ -95,9 +83,9 @@ spec:
         targetPath: ./generated
         cookiecutterCompat: true
         values:
-          git_repo_name: ${{ parameters.git_repo_name }}
-          app_name: ${{ parameters.git_repo_name }}
-          org: ${{ parameters.org }}
+          git_repo_name: ${{ (parameters.repoUrl | parseRepoUrl).repo }}
+          app_name: ${{ (parameters.repoUrl | parseRepoUrl).repo }}
+          org: ${{ (parameters.repoUrl | parseRepoUrl).owner }}
           product: ${{ parameters.product }}
           product_family: ${{ parameters.product_family }}
           class_name: ${{ parameters.class_name }}
@@ -105,7 +93,7 @@ spec:
           cloud_region: ${{ parameters.cloud_region }}
           namespace: ${{ parameters.namespace }}
           eks_cluster_identifier: ${{ parameters.eks_cluster_identifier }}
-          argo_app_name: ${{ parameters.git_repo_name }}
+          argo_app_name: ${{ (parameters.repoUrl | parseRepoUrl).repo }}
           service_region: ${{ parameters.cloud_region }}
           customer: "internal"
           github_team: "engineering"
@@ -138,7 +126,7 @@ spec:
       action: fs:readdir
       input:
         paths: 
-          - ./generated/${{ parameters.git_repo_name }}
+          - ./generated/${{ (parameters.repoUrl | parseRepoUrl).repo }}
 
     - id: log-generated-tree
       name: Log Generated Tree
@@ -153,9 +141,9 @@ spec:
       action: fetch:template:file
       input:
         url: ./content/catalog-info.yaml
-        targetPath: ./generated/${{ parameters.git_repo_name }}/catalog-info.yaml
+        targetPath: ./generated/${{ (parameters.repoUrl | parseRepoUrl).repo }}/catalog-info.yaml
         values:
-          name: ${{ parameters.git_repo_name }}
+          name: ${{ (parameters.repoUrl | parseRepoUrl).repo }}
           description: 'Microservice generated from scaffolding-templates'
 
     # Step 4: Create local Git repository
@@ -163,21 +151,31 @@ spec:
       name: Create Local Repository
       action: debug:log
       input:
-        message: 'Repository created locally at: generated/${{ parameters.git_repo_name }}'
+        message: 'Repository created locally at: generated/${{ (parameters.repoUrl | parseRepoUrl).repo }}'
 
     - id: persist-local-repo
       name: Persist Local Repository
       action: repo:persist:local
       input:
-        sourcePath: ./generated/${{ parameters.git_repo_name }}
-        targetPath: ./generated/${{ parameters.git_repo_name }}
+        sourcePath: ./generated/${{ (parameters.repoUrl | parseRepoUrl).repo }}
+        targetPath: ./generated/${{ (parameters.repoUrl | parseRepoUrl).repo }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: 'Microservice generated from backstage-demoapp scaffolding-repo-templates'
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+        sourcePath: ./generated/${{ (parameters.repoUrl | parseRepoUrl).repo }}
 
     # Step 5: Register the new component in the Backstage catalog
     - id: register
       name: Register in Catalog
-      action: catalog:register:file
+      action: catalog:register
       input:
-        path: ${{ steps['persist-local-repo'].output.targetPath }}/catalog-info.yaml
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
 
     # Step 6: Send notification
     - id: notify
@@ -187,16 +185,14 @@ spec:
         recipients: entity
         entityRefs:
           - user:default/guest
-        title: 'Repository Created Successfully (Local)'
-        info: 'Your new microservice ${{ parameters.git_repo_name }} has been created locally and registered in the catalog.'
+        title: 'Repository Created Successfully (Local/GitHub)'
+        info: 'Your new microservice ${{ (parameters.repoUrl | parseRepoUrl).repo }} has been published to GitHub and registered in the catalog.'
         severity: 'normal'
 
   output:
     links:
-      - title: Local Repository
-        url: ${{ steps['persist-local-repo'].output.targetPath }}
+      - title: GitHub Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
       - title: Open in Catalog
         icon: catalog
         entityRef: ${{ steps['register'].output.entityRef }}
-      - title: Catalog Info
-        url: ${{ steps['persist-local-repo'].output.targetPath }}/catalog-info.yaml
