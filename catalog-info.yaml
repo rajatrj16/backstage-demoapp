@@ -4,8 +4,8 @@ metadata:
   name: demoapp
   description: An example of a Backstage application.
   # Example for optional annotations
-  # annotations:
-  #   github.com/project-slug: backstage/backstage
+  annotations:
+    github.com/project-slug: rajatrj16/backstage-demoapp
   #   backstage.io/techdocs-ref: dir:.
 spec:
   type: website
