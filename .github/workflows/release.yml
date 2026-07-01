@@ -72,9 +72,12 @@ jobs:
 
       - name: Package source as release artifact
         run: |
-          echo "Packaging release artifact..."
+          echo "Mock: Packaging release artifact..."
           mkdir -p dist
-          zip -r "dist/demoapp-${{ steps.tag_version.outputs.new_tag }}.zip" src requirements.txt Dockerfile
+          echo "Mock: Creating demoapp-${{ steps.tag_version.outputs.new_tag }}.zip"
+          echo "Mock: zip -r dist/demoapp-${{ steps.tag_version.outputs.new_tag }}.zip . -i src requirements.txt Dockerfile"
+          touch "dist/demoapp-${{ steps.tag_version.outputs.new_tag }}.zip"
+          echo "Release artifact packaging completed (mock)"
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
