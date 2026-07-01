@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  lint-build-test:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.13-slim
+    env:
+      PYTHONPATH: .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -r requirements.txt
+          pip3 install flake8 coverage
+
+      - name: Build
+        run: |
+          python3 -m compileall src
+
+      - name: Test with coverage
+        run: |
+          coverage run -m pytest -q
+          coverage xml -o coverage.xml
+          coverage report
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 14
+
+  tag-and-release:
+    if: ${{ github.actor != 'nektos/act' }}
+    needs: lint-build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      new_tag: ${{ steps.tag_version.outputs.new_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+
+      - name: Package source as release artifact
+        run: |
+          mkdir -p dist
+          zip -r "dist/demoapp-${{ steps.tag_version.outputs.new_tag }}.zip" src requirements.txt Dockerfile
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          name: ${{ steps.tag_version.outputs.new_tag }}
+          generate_release_notes: true
+          files: dist/*.zip
+
+  build-image-artifact:
+    if: ${{ github.actor != 'nektos/act' }}
+    needs: tag-and-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (not pushed to any registry)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: demoapp:${{ needs.tag-and-release.outputs.new_tag }}
+
+      - name: Save image as artifact
+        run: |
+          docker save "demoapp:${{ needs.tag-and-release.outputs.new_tag }}" -o demoapp-image.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-${{ needs.tag-and-release.outputs.new_tag }}
+          path: demoapp-image.tar
+          retention-days: 14
+
+  deploy:
+    if: ${{ github.actor != 'nektos/act' }}
+    needs: [tag-and-release, build-image-artifact]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
+    steps:
+      - name: Simulate deployment
+        run: |
+          echo "Deploying demoapp ${{ needs.tag-and-release.outputs.new_tag }} to production (simulated)."
+          echo "No real infrastructure target is configured — replace this step with an actual deploy command when one exists."
