@@ -1,0 +1,54 @@
+name: Deploy Failure Simulation
+
+# Manual-only so it never interferes with ci.yml or release.yml.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build-image-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (not pushed to any registry)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: demoapp:failure-sim
+
+  deploy:
+    needs: build-image-artifact
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Simulate deployment
+        run: |
+          echo "Deploying demoapp:failure-sim to production (simulated)."
+
+      - name: Simulate failed health check
+        run: |
+          echo "Waiting for new deployment to become healthy..."
+          echo "Health check failed: /ready returned 503 after 3 attempts."
+          exit 1
+
+  rollback:
+    needs: deploy
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Simulate rollback
+        run: |
+          echo "Deployment failed — rolling back demoapp in production to the previous release (simulated)."
+          echo "Rollback complete."
