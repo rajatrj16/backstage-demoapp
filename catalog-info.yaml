@@ -6,8 +6,11 @@ metadata:
   # Example for optional annotations
   annotations:
     github.com/project-slug: rajatrj16/backstage-demoapp
-  #   backstage.io/techdocs-ref: dir:.
+  tags:
+    - microservice
+    - generated
 spec:
   type: website
-  owner: john@example.com
-  lifecycle: experimental
+  owner: user:guest
+  lifecycle: development
+  system: services
