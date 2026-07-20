@@ -1,0 +1,169 @@
+# =============================================================================
+# Lint Workflow (GitHub Super-Linter)
+# =============================================================================
+# Language-agnostic linting using GitHub's super-linter.
+# Auto-detects and lints 50+ languages/formats including Python, JS/TS, YAML,
+# Dockerfile, Markdown, JSON, Shell, and more.
+#
+# Usage (from any repo):
+#   jobs:
+#     lint:
+#       uses: <org>/<shared-repo>/.github/workflows/lint.yml@main
+#       with:
+#         # all inputs are optional — sensible defaults are provided
+#         validate_all_codebase: false
+# =============================================================================
+
+name: Lint
+
+on:
+  workflow_call:
+    inputs:
+      # -----------------------------------------------------------------------
+      # General
+      # -----------------------------------------------------------------------
+      validate_all_codebase:
+        description: >
+          When true, lint the entire codebase. When false (default), lint only
+          changed files (requires a git diff base, typically works on PRs).
+        type: boolean
+        required: false
+        default: true
+
+      default_branch:
+        description: 'Default branch name used for diff comparison.'
+        type: string
+        required: false
+        default: 'main'
+
+      log_level:
+        description: 'Super-Linter log level: ERROR, WARN, NOTICE, VERBOSE, DEBUG.'
+        type: string
+        required: false
+        default: 'NOTICE'
+
+      filter_regex_exclude:
+        description: >
+          Regex to exclude files/paths from linting (e.g. vendor/|node_modules/).
+        type: string
+        required: false
+        default: ''
+
+      # -----------------------------------------------------------------------
+      # Language toggles — enable/disable specific linters
+      # By default all detected languages are linted. Set any of these to false
+      # to skip that linter.
+      # -----------------------------------------------------------------------
+      validate_python:
+        description: 'Enable Python linting (flake8).'
+        type: boolean
+        required: false
+        default: true
+
+      validate_javascript:
+        description: 'Enable JavaScript linting (eslint).'
+        type: boolean
+        required: false
+        default: true
+
+      validate_typescript:
+        description: 'Enable TypeScript linting (eslint).'
+        type: boolean
+        required: false
+        default: true
+
+      validate_yaml:
+        description: 'Enable YAML linting (yamllint).'
+        type: boolean
+        required: false
+        default: true
+
+      validate_json:
+        description: 'Enable JSON linting (jsonlint).'
+        type: boolean
+        required: false
+        default: true
+
+      validate_markdown:
+        description: 'Enable Markdown linting (markdownlint).'
+        type: boolean
+        required: false
+        default: true
+
+      validate_dockerfile:
+        description: 'Enable Dockerfile linting (hadolint).'
+        type: boolean
+        required: false
+        default: true
+
+      validate_bash:
+        description: 'Enable Bash/Shell linting (shellcheck).'
+        type: boolean
+        required: false
+        default: true
+
+      validate_github_actions:
+        description: 'Enable GitHub Actions workflow linting (actionlint).'
+        type: boolean
+        required: false
+        default: true
+
+      # -----------------------------------------------------------------------
+      # Advanced
+      # -----------------------------------------------------------------------
+      linter_rules_path:
+        description: >
+          Path inside the repo to a directory containing linter config files
+          (e.g. .github/linters). Super-Linter looks here for .flake8,
+          .eslintrc.json, .markdownlint.json, etc.
+        type: string
+        required: false
+        default: '.github/linters'
+
+    secrets:
+      github_token:
+        description: >
+          GitHub token for API calls (e.g. PR status checks). Falls back to
+          the default GITHUB_TOKEN if not provided.
+        required: false
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  lint:
+    name: Super-Linter
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # Full history needed for diff-based linting on PRs
+          fetch-depth: 0
+
+      - name: Run Super-Linter
+        uses: super-linter/super-linter@v8.5.0 # x-release-version
+        env:
+          # To report GitHub Actions status checks
+          GITHUB_TOKEN: ${{ secrets.github_token || github.token }}
+
+          # --- General ---
+          VALIDATE_ALL_CODEBASE: ${{ inputs.validate_all_codebase }}
+          DEFAULT_BRANCH: ${{ inputs.default_branch }}
+          LOG_LEVEL: ${{ inputs.log_level }}
+          FILTER_REGEX_EXCLUDE: ${{ inputs.filter_regex_exclude }}
+          LINTER_RULES_PATH: ${{ inputs.linter_rules_path }}
+
+          # --- Language toggles ---
+          VALIDATE_PYTHON_FLAKE8: ${{ inputs.validate_python }}
+          VALIDATE_JAVASCRIPT_ES: ${{ inputs.validate_javascript }}
+          VALIDATE_TYPESCRIPT_ES: ${{ inputs.validate_typescript }}
+          VALIDATE_YAML: ${{ inputs.validate_yaml }}
+          VALIDATE_JSON: ${{ inputs.validate_json }}
+          VALIDATE_MARKDOWN: ${{ inputs.validate_markdown }}
+          VALIDATE_DOCKERFILE_HADOLINT: ${{ inputs.validate_dockerfile }}
+          VALIDATE_BASH: ${{ inputs.validate_bash }}
+          VALIDATE_GITHUB_ACTIONS: ${{ inputs.validate_github_actions }}

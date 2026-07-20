@@ -1,0 +1,42 @@
+# =============================================================================
+# Example: How to call the lint workflow from any repo
+# =============================================================================
+# Copy this file into your repo's .github/workflows/ directory and adjust:
+#   1. The `uses:` path to point to where lint.yml is hosted
+#   2. The `with:` inputs to match your project's needs
+#
+# Delete this file if you don't need it in this repo — it's just a reference.
+# =============================================================================
+
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    # -------------------------------------------------------------------------
+    # Option A: Call from the same repo
+    # -------------------------------------------------------------------------
+    # uses: ./.github/workflows/lint.yml
+    # with:
+    #   # Lint only changed files on PRs, full codebase on push to main
+    #   validate_all_codebase: ${{ github.event_name == 'push' }}
+    #   default_branch: main
+    #   # Skip vendored / generated dirs
+    #   filter_regex_exclude: 'node_modules/|dist/|\.yarn/'
+    #   # Disable linters you don't need
+    #   # validate_markdown: false
+
+    # -------------------------------------------------------------------------
+    # Option B: Call from a shared/central repo (uncomment and adjust)
+    # -------------------------------------------------------------------------
+    uses: rajatrj16/ftp-repo/.github/workflows/lint.yml@main
+    with:
+      validate_all_codebase: false
+
+    secrets:
+      github_token: ${{ secrets.GITHUB_TOKEN }}

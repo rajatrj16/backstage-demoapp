@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  deployments: write
 
 jobs:
   build-image-artifact:
@@ -31,6 +32,25 @@ jobs:
     environment:
       name: production
     steps:
+      - name: Create GitHub deployment
+        id: create_deployment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              required_contexts: [],
+              environment: 'production',
+              auto_merge: false,
+              description: 'Simulated deployment failure',
+              transient_environment: false,
+              production_environment: true
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+
       - name: Simulate deployment
         run: |
           echo "Deploying demoapp:failure-sim to production (simulated)."
@@ -40,6 +60,24 @@ jobs:
           echo "Waiting for new deployment to become healthy..."
           echo "Health check failed: /ready returned 503 after 3 attempts."
           exit 1
+
+      - name: Mark GitHub deployment as failed
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: parseInt(process.env.DEPLOYMENT_ID, 10),
+              state: 'failure',
+              log_url: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+              environment_url: 'https://example.com',
+              description: 'Simulated failed deployment health check.'
+            });
+        env:
+          DEPLOYMENT_ID: ${{ steps.create_deployment.outputs.deployment_id }}
 
   # rollback:
   #   needs: deploy
